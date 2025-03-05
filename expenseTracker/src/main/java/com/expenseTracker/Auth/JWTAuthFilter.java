@@ -34,18 +34,26 @@ public class JWTAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        String requestPath = request.getServletPath();
 
+        // Bypass JWT check for specific URLs
+        if (requestPath.equals("/auth/v1/signUp") || requestPath.equals("/auth/v1/login") || requestPath.equals("/auth/v1/refreshToken")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // Existing JWT validation logic
         String authHeader = request.getHeader("Authorization");
         String token = null;
         String username = null;
 
-        if (authHeader != null && authHeader.startsWith("Bearer")) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
             username = jwtService.extractUsername(token);
         }
 
-        if (username != null && SecurityContextHolder.getContext() == null) {
-            UserDetails userDetails = userServiceImpl.loasUserByUsername(username);
+        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            UserDetails userDetails = userServiceImpl.loadUserByUsername(username);
             if (jwtService.validateToken(token, userDetails)) {
                 UsernamePasswordAuthenticationToken authenticationToken =
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
@@ -55,7 +63,6 @@ public class JWTAuthFilter extends OncePerRequestFilter {
             }
         }
 
-
-        filterChain.doFilter(request,response);
+        filterChain.doFilter(request, response);
     }
 }

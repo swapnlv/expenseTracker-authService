@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0.29
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: Kittu@3008
+      MYSQL_DATABASE: expense-tracker
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./my.cnf:/etc/my.cnf
+    networks:
+      - app-network
+
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+    ports:
+      - "2181:2181"
+    networks:
+      - app-network
+
+  kafka-server:
+    image: bitnami/kafka:latest
+    container_name: kafka-server
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka-server:9092
+      KAFKA_LISTENERS: INSIDE://0.0.0.0:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE 
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    networks:
+      - app-network
+
+
+  app:
+    build: .
+    container_name: expensetracker
+    environment:
+      SPRING_APPLICATION_NAME: expenseTracker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/expense-tracker
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Kittu@3008
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.MySQL8Dialect
+      SPRING_JPA_GENERATE_DDL: true
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-server:9092
+      SPRING_KAFKA_TOPIC_NAME: user_service
+    ports:
+      - "8060:8060"
+    depends_on:
+      - mysql
+      - kafka-server
+    networks:
+      - app-network
+
+  userservice:
+    build: F:\UserServiceV1\UserServiceV1
+    container_name: userservice
+    environment:
+      SPRING_APPLICATION_NAME: UserServiceV1
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/expense-tracker
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Kittu@7905
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.MySQL8Dialect
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-server:9092
+      SPRING_KAFKA_TOPIC_NAME: user_service
+      SPRING_KAFKA_CONSUMER_GROUP_ID: userinfo-consumer-group
+      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
+    ports:
+      - "8070:8070"
+    depends_on:
+      - mysql
+      - kafka-server
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local

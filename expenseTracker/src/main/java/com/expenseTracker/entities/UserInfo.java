@@ -16,7 +16,6 @@ import java.util.Set;
 public class UserInfo {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "user_id")
     private String user_id;
     @Column(name = "user_name")
@@ -31,4 +30,6 @@ public class UserInfo {
             inverseJoinColumns = @JoinColumn(name = "role_id") // column referring to UserRole
     )
     private Set<UserRole> roles = new HashSet<>();
+
+
 }

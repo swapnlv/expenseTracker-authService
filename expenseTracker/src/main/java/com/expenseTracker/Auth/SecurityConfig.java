@@ -1,7 +1,5 @@
 package com.expenseTracker.Auth;
 
-import com.expenseTracker.repository.UserInfoRepo;
-import com.expenseTracker.services.UserService;
 import com.expenseTracker.services.UserServiceImpl;
 import jakarta.servlet.Filter;
 import lombok.Data;
@@ -19,12 +17,13 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.CorsConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+
 @Configuration
+@EnableWebSecurity
 @EnableMethodSecurity
 @Data
 public class SecurityConfig {
@@ -33,45 +32,39 @@ public class SecurityConfig {
     private UserServiceImpl userServiceImpl;
 
     @Autowired
-    private PasswordEncoder  passwordEncoder;
+    private PasswordEncoder passwordEncoder;
 
-
-
-    @Bean
     @Autowired
-    public UserService userService(UserInfoRepo userInfoRepo, PasswordEncoder passEncoder){
-        return new UserServiceImpl(userInfoRepo, passwordEncoder);
-    }
+    private JWTAuthFilter jwtAuthFilter;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JWTAuthFilter jwtAuthFilter) throws Exception {
-        return http.
-                csrf(AbstractHttpConfigurer:: disable).
-                cors(CorsConfigurer::disable).
-                authorizeHttpRequests(auth -> auth.
-                requestMatchers("/auth/v1/login", "/auth/v1/refreshToken","/auth/v1/signUp").permitAll().
-                        anyRequest().authenticated()
-                ).
-                sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS)).
-                httpBasic(Customizer.withDefaults()).
-                addFilterBefore((Filter) jwtAuthFilter, UsernamePasswordAuthenticationFilter.class).
-                authenticationProvider(authenticationProvider()).build();
 
-
-
+        return http
+                .csrf(AbstractHttpConfigurer::disable).cors(CorsConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/auth/v1/login", "/auth/v1/refreshToken", "/auth/v1/signUp").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .httpBasic(Customizer.withDefaults())
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .authenticationProvider(authenticationProvider())
+                .build();
     }
 
+
+    @Bean
     public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authenticationProvider=new DaoAuthenticationProvider();
-        authenticationProvider.setUserDetailsService((UserDetailsService) userServiceImpl);
+        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
+        authenticationProvider.setUserDetailsService(userServiceImpl);
         authenticationProvider.setPasswordEncoder(passwordEncoder);
         return authenticationProvider;
-
     }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
-
-
 }
+

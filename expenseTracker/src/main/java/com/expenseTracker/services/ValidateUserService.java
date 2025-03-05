@@ -25,6 +25,8 @@ public class ValidateUserService {
         if (matcher.matches() && matcherPass.matches() ){
             return true;
         }else{
+            System.out.println("Email Validated: "+matcher.matches());
+            System.out.println("Password Validated: "+matcherPass.matches());
             return false;
         }
     }
