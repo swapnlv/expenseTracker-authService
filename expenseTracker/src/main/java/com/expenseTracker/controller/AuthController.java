@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Optional;
+
 @AllArgsConstructor
 @RestController
 public class AuthController {
@@ -28,21 +30,34 @@ public class AuthController {
     private UserServiceImpl userServiceImpl;
 
 
+
     @PostMapping("/auth/v1/signUp")
-    public ResponseEntity signUp(@RequestBody UserDetailDTO userDetailDTO){
-        try{
+    public ResponseEntity signUp(@RequestBody UserDetailDTO userDetailDTO) {
+        System.out.println("Hi from signup controller");
+        try {
+            System.out.println("Hi from try");
             Boolean isUserSignedUp = userServiceImpl.signUp(userDetailDTO);
-            if (isUserSignedUp) {
-                return new ResponseEntity<>("Already existing User", HttpStatus.BAD_REQUEST);
+
+            // If the user already exists, return a bad request
+            if (!isUserSignedUp) {
+                return new ResponseEntity<>("User already exists", HttpStatus.BAD_REQUEST);
             }
-            RefreshToken refreshToken = refreshTokenService.createRefreshToken(userDetailDTO.getUserName());
-            String jwtToken = jwtService.GenerateToken(userDetailDTO.getUserName());
 
-            return new ResponseEntity<>(JWTResponseDTO.builder().accessToken(jwtToken).
-                    refreshToken(refreshToken.getToken()).build(), HttpStatus.OK);
-        }catch(Exception e){
-            return new ResponseEntity<>("Exception in User Service ", HttpStatus.INTERNAL_SERVER_ERROR);
+            // Create JWT and refresh token upon successful sign-up
+            Optional<RefreshToken> refreshToken = refreshTokenService.createRefreshToken(userDetailDTO.getUsername());
+            String jwtToken = jwtService.GenerateToken(userDetailDTO.getUsername());
+
+            // Return the JWT and refresh token
+            return new ResponseEntity<>(JWTResponseDTO.builder()
+                    .accessToken(jwtToken)
+                    .refreshToken(refreshToken.get().getToken())
+                    .build(), HttpStatus.OK);
+
+        } catch (Exception e) {
+            // Log the full stack trace for debugging
+            e.printStackTrace();  // Replace this with proper logging in production
+            return new ResponseEntity<>("Exception in User Service: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
     }
+
 }
