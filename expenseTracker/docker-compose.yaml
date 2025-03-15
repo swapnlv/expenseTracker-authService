@@ -65,7 +65,7 @@ services:
       - app-network
 
   userservice:
-    build: F:\UserServiceV1\UserServiceV1
+    build: expenseTracker-userServiceV1/UserServiceV1
     container_name: userservice
     environment:
       SPRING_APPLICATION_NAME: UserServiceV1
