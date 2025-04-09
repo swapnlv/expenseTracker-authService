@@ -6,6 +6,8 @@ import com.expenseTracker.entities.RefreshToken;
 import com.expenseTracker.services.JwtService;
 import com.expenseTracker.services.RefreshTokenService;
 import com.expenseTracker.services.UserServiceImpl;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -31,6 +33,9 @@ public class AuthController {
 
 
 
+
+    @Operation(summary = "Signing Up the user", description = "SignUp the  user and return Token Reponse")
+    @ApiResponse(responseCode = "200", description = "Successfully user signed Up")
     @PostMapping("/auth/v1/signUp")
     public ResponseEntity signUp(@RequestBody UserDetailDTO userDetailDTO) {
         System.out.println("Hi from signup controller");
@@ -45,7 +50,7 @@ public class AuthController {
 
             // Create JWT and refresh token upon successful sign-up
             Optional<RefreshToken> refreshToken = refreshTokenService.createRefreshToken(userDetailDTO.getUsername());
-            String jwtToken = jwtService.GenerateToken(userDetailDTO.getUsername());
+            String  jwtToken = jwtService.GenerateToken(userDetailDTO.getUsername());
 
             // Return the JWT and refresh token
             return new ResponseEntity<>(JWTResponseDTO.builder()
