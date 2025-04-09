@@ -6,6 +6,8 @@ import com.expenseTracker.DTO.responseDTO.JWTResponseDTO;
 import com.expenseTracker.entities.RefreshToken;
 import com.expenseTracker.services.JwtService;
 import com.expenseTracker.services.RefreshTokenService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -32,6 +34,9 @@ public class TokenController {
     @Autowired
     private JwtService jwtService;
 
+
+    @Operation(summary = "Logging in the user", description = "Logging in the  user and return Token Reponse")
+    @ApiResponse(responseCode = "200", description = "Successfully user logged in")
     @PostMapping("auth/v1/login")
     public ResponseEntity authenticateAndGetToken(@RequestBody AuthRequestDTO authRequestDTO){
 
@@ -48,6 +53,9 @@ public class TokenController {
             return new ResponseEntity<>("Exception in User Service " , HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @Operation(summary = "Refreshing the token ", description = "Refreshing the token and return Token Reponse")
+    @ApiResponse(responseCode = "200", description = "Refreshing the user")
     @PostMapping("auth/v1/refreshToken")
     public JWTResponseDTO refreshToken(@RequestBody RefreshTokenDTO refreshTokenDTO){
         return refreshTokenService.findByToken(refreshTokenDTO.getToken()).

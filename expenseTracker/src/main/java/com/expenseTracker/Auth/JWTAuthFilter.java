@@ -33,7 +33,7 @@ public class JWTAuthFilter extends OncePerRequestFilter {
     UserServiceImpl userServiceImpl;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    public void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String requestPath = request.getServletPath();
 
         // Bypass JWT check for specific URLs

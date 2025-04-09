@@ -11,37 +11,38 @@ services:
       - "3307:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./my.cnf:/etc/my.cnf
+#      - ./my.cnf:/etc/my.cnf
     networks:
       - app-network
 
   zookeeper:
-    image: bitnami/zookeeper:latest
+    image: confluentinc/cp-zookeeper:latest
     container_name: zookeeper
     environment:
-      ALLOW_ANONYMOUS_LOGIN: "yes"
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
     networks:
       - app-network
 
   kafka-server:
-    image: bitnami/kafka:latest
+    image: confluentinc/cp-kafka:latest
     container_name: kafka-server
     environment:
-      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka-server:9092
-      KAFKA_LISTENERS: INSIDE://0.0.0.0:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT
+      KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-server:9092
+      KAFKA_LISTENERS: PLAINTEXT://:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     ports:
       - "9092:9092"
     depends_on:
       - zookeeper
     networks:
       - app-network
-
-
   app:
     build: .
     container_name: expensetracker
@@ -87,10 +88,49 @@ services:
     networks:
       - app-network
 
+  dsservice:
+    build: .
+    container_name: dsService
+    environment:
+      SPRING_APPLICATION_NAME: dsService
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-server:9092
+      SPRING_KAFKA_TOPIC_NAME: payment_details # You may want to set a topic name here
+    ports:
+      - "8090:8090"
+    depends_on:
+      - kafka-server
+    networks:
+      - app-network
+
+  expenseservice:
+    build: .
+    container_name: expenseService
+    environment:
+      SPRING_APPLICATION_NAME: expenseService
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/expenseService
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Kittu@3008
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.MySQL8Dialect
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-server:9092
+      SPRING_KAFKA_TOPIC_NAME: payment_details
+      SPRING_KAFKA_CONSUMER_GROUP_ID: payment-consumer-group
+      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
+    ports:
+      - "9000:9000"
+    depends_on:
+      - mysql
+      - kafka-server
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge
 
 volumes:
   mysql-data:
+    driver: local
+  kafka-data:
     driver: local
